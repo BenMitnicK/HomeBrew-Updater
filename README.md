@@ -369,6 +369,10 @@ If a check fails, installation is blocked and the invalid VPK is automatically d
 - VitaShell Code;
 - Download Enabler Code;
 
+## Demonstration Video
+
+[![HomebrewUpdate Demonstration](https://img.youtube.com/vi/FvSQqmlBC1Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=FvSQqmlBC1Y)
+
 ## Source Code
 
 The source code will be made available after I’ve had a well-deserved break. Once I’m back from vacation, I’ll clean it up and publish it.
