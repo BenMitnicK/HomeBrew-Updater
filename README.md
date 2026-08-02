@@ -362,6 +362,225 @@ Only a VPK that passes every check receives the `Waiting to Install` notificatio
 
 If a check fails, installation is blocked and the invalid VPK is automatically deleted.
 
+# HomebrewUpdate Status API — Developer Integration
+
+HomebrewUpdate provides a small client library that allows any PS Vita application to check whether the plugin is available and operational.
+
+The application does not need a user plugin or a kernel plugin. It only needs:
+
+```text
+homebrew_update_client.h
+libHomebrewUpdateClient.a
+```
+
+## Status values
+
+```c
+typedef enum HomebrewUpdateStatus {
+    HOMEBREW_UPDATE_NOT_DETECTED = -1,
+    HOMEBREW_UPDATE_DISABLED = 0,
+    HOMEBREW_UPDATE_HOOK_ERROR = 1,
+    HOMEBREW_UPDATE_READY = 2
+} HomebrewUpdateStatus;
+```
+
+```text
+-1 = HomebrewUpdate is not detected or its local server is unavailable
+ 0 = HomebrewUpdate is loaded, but disabled
+ 1 = HomebrewUpdate is enabled, but its hooks are not operational
+ 2 = HomebrewUpdate is enabled and fully operational
+```
+
+## How it works
+
+The client library opens a short local connection to:
+
+```text
+http://127.0.0.1:13379/status
+```
+
+HomebrewUpdate returns:
+
+```json
+{"status":2}
+```
+
+The socket is closed immediately after the response. No permanent connection is kept by the application.
+
+After a system resume, HomebrewUpdate rescans its configuration and hook state before publishing the current status again.
+
+## Application example
+
+```c
+#include "homebrew_update_client.h"
+
+static void check_homebrew_update(void)
+{
+    int status = HomebrewUpdateClientGetStatus();
+
+    switch (status) {
+    case HOMEBREW_UPDATE_READY:
+        /* HomebrewUpdate is fully operational. */
+        break;
+
+    case HOMEBREW_UPDATE_DISABLED:
+        /* Suggested message:
+         * "HomebrewUpdate is installed but disabled."
+         */
+        break;
+
+    case HOMEBREW_UPDATE_HOOK_ERROR:
+        /* Suggested message:
+         * "HomebrewUpdate is enabled, but failed to initialize."
+         */
+        break;
+
+    case HOMEBREW_UPDATE_NOT_DETECTED:
+    default:
+        /* Suggested message:
+         * "HomebrewUpdate was not detected."
+         */
+        break;
+    }
+}
+```
+
+## CMake integration
+
+```cmake
+set(HOMEBREW_UPDATE_CLIENT_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/libs/HomebrewUpdateClient")
+
+target_include_directories(MyApplication PRIVATE
+    "${HOMEBREW_UPDATE_CLIENT_DIR}/include"
+)
+
+target_link_libraries(MyApplication PRIVATE
+    "${HOMEBREW_UPDATE_CLIENT_DIR}/lib/libHomebrewUpdateClient.a"
+    SceNet_stub
+)
+```
+
+The application must initialize the PS Vita network library before calling the client API if it has not already done so.
+
+## Public header
+
+```c
+#ifndef HOMEBREW_UPDATE_CLIENT_H
+#define HOMEBREW_UPDATE_CLIENT_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum HomebrewUpdateStatus {
+    HOMEBREW_UPDATE_NOT_DETECTED = -1,
+    HOMEBREW_UPDATE_DISABLED = 0,
+    HOMEBREW_UPDATE_HOOK_ERROR = 1,
+    HOMEBREW_UPDATE_READY = 2
+} HomebrewUpdateStatus;
+
+int HomebrewUpdateClientGetStatus(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+```
+
+## Client library source
+
+```c
+#include "homebrew_update_client.h"
+#include <psp2/net/net.h>
+#include <stdio.h>
+#include <string.h>
+
+#define HBU_STATUS_PORT 13379
+#define HBU_CLIENT_TIMEOUT_US 1000000
+
+int HomebrewUpdateClientGetStatus(void)
+{
+    int fd = sceNetSocket(
+        "hbu_status_client",
+        SCE_NET_AF_INET,
+        SCE_NET_SOCK_STREAM,
+        0
+    );
+
+    if (fd < 0)
+        return HOMEBREW_UPDATE_NOT_DETECTED;
+
+    int timeout = HBU_CLIENT_TIMEOUT_US;
+    sceNetSetsockopt(fd, SCE_NET_SOL_SOCKET,
+        SCE_NET_SO_SNDTIMEO, &timeout, sizeof(timeout));
+    sceNetSetsockopt(fd, SCE_NET_SOL_SOCKET,
+        SCE_NET_SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+    SceNetSockaddrIn addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_len = sizeof(addr);
+    addr.sin_family = SCE_NET_AF_INET;
+    addr.sin_port = sceNetHtons(HBU_STATUS_PORT);
+    addr.sin_addr.s_addr = sceNetHtonl(SCE_NET_INADDR_LOOPBACK);
+
+    if (sceNetConnect(fd, (SceNetSockaddr *)&addr, sizeof(addr)) < 0) {
+        sceNetSocketClose(fd);
+        return HOMEBREW_UPDATE_NOT_DETECTED;
+    }
+
+    static const char request[] =
+        "GET /status HTTP/1.1\r\n"
+        "Host: 127.0.0.1\r\n"
+        "Connection: close\r\n\r\n";
+
+    if (sceNetSend(fd, request, sizeof(request) - 1, 0) < 0) {
+        sceNetSocketClose(fd);
+        return HOMEBREW_UPDATE_NOT_DETECTED;
+    }
+
+    char buffer[512];
+    int total = 0;
+    int received;
+
+    while (total < (int)sizeof(buffer) - 1 &&
+           (received = sceNetRecv(
+               fd,
+               buffer + total,
+               sizeof(buffer) - 1 - total,
+               0
+           )) > 0) {
+        total += received;
+    }
+
+    sceNetSocketClose(fd);
+    buffer[total] = '\0';
+
+    char *json = strstr(buffer, "{\"status\":");
+    if (!json)
+        return HOMEBREW_UPDATE_NOT_DETECTED;
+
+    int status = HOMEBREW_UPDATE_NOT_DETECTED;
+
+    if (sscanf(json, "{\"status\":%d}", &status) != 1 ||
+        status < HOMEBREW_UPDATE_DISABLED ||
+        status > HOMEBREW_UPDATE_READY) {
+        return HOMEBREW_UPDATE_NOT_DETECTED;
+    }
+
+    return status;
+}
+```
+
+The HomebrewUpdate build automatically generates:
+
+```text
+Compiled/client/include/homebrew_update_client.h
+Compiled/client/lib/libHomebrewUpdateClient.a
+```
+
+
 ## Credits
 
 [TheOfficialFloW](https://github.com/TheOfficialFloW)
