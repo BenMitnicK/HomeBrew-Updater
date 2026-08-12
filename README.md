@@ -33,17 +33,17 @@ The entire process is handled on the PS Vita. A computer is not required once Ho
 
 ## Installation
 
-1. Copy `homebrew_update.suprx` to:
+1. Copy `HomebrewUpdate.suprx` to:
 
    ```text
-   ur0:tai/homebrew_update.suprx
+   ur0:tai/HomebrewUpdate.suprx
    ```
 
 2. Add the plugin under `*main` in `ur0:tai/config.txt`:
 
    ```ini
    *main
-   ur0:tai/homebrew_update.suprx
+   ur0:tai/HomebrewUpdate.suprx
    ```
 
 3. Reboot the console.
