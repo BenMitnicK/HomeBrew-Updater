@@ -225,13 +225,13 @@ The VPK must also contain the correct application version in its `sce_sys/param.
 Use this format:
 
 ```text
-TITLEID-VERSION-PE.vpk
+TITLEID-VERSION-NameOfApp.vpk
 ```
 
 Example:
 
 ```text
-VTBX00001-02.11-PE.vpk
+VTBX00001-02.11-VitaTweakBox.vpk
 ```
 
 Use the final release VPK to calculate the size and SHA-1. Do not rebuild or modify the VPK after calculating these values.
@@ -239,7 +239,7 @@ Use the final release VPK to calculate the size and SHA-1. Do not rebuild or mod
 ### Calculate size and SHA-1 with PowerShell
 
 ```powershell
-$Vpk = "VTBX00001-02.11-PE.vpk"
+$Vpk = "VTBX00001-02.11-VitaTweakBox.vpk"
 (Get-Item $Vpk).Length
 (Get-FileHash $Vpk -Algorithm SHA1).Hash.ToLower()
 ```
@@ -247,8 +247,8 @@ $Vpk = "VTBX00001-02.11-PE.vpk"
 ### Calculate size and SHA-1 on Linux
 
 ```bash
-stat -c %s VTBX00001-02.11-PE.vpk
-sha1sum VTBX00001-02.11-PE.vpk
+stat -c %s VTBX00001-02.11-VitaTweakBox.vpk
+sha1sum VTBX00001-02.11-VitaTweakBox.vpk
 ```
 
 ## 4. Create the update XML
@@ -275,7 +275,7 @@ Complete example:
         version="02.11"
         size="24897058"
         sha1sum="0123456789abcdef0123456789abcdef01234567"
-        url="https://example.com/updates/VTBX00001-02.11-PE.vpk"
+        url="https://example.com/updates/VTBX00001-02.11-VitaTweakBox.vpk"
         psp2_system_ver="56623104"
         content_id="EP9000-VTBX00001_00-VITATWEAKBOX0001">
       <paramsfo>
@@ -332,7 +332,7 @@ For the example above, the server should provide:
 ```text
 VTBX00001-ver.xml
 VTBX00001-changeinfo.xml
-VTBX00001-02.11-PE.vpk
+VTBX00001-02.11-VitaTweakBox.vpk
 ```
 
 Before publishing the update, verify that:
