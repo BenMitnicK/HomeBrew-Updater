@@ -579,7 +579,22 @@ The HomebrewUpdate build automatically generates:
 Compiled/client/include/homebrew_update_client.h
 Compiled/client/lib/libHomebrewUpdateClient.a
 ```
+## Compatibility
 
+| Firmware | Retail | Test Kit | Dev Kit |
+|:--------:|:------:|:--------:|:-------:|
+| **3.60** | YES | YES | — |
+| **3.61** | — | — | — |
+| **3.63** | — | — | — |
+| **3.65** | YES | YES | — |
+| **3.67** | — | — | — |
+| **3.68** | YES | — | — |
+| **3.69** | — | — | — |
+| **3.70** | YES | — | — |
+| **3.71** | — | — | — |
+| **3.72** | — | — | — |
+| **3.73** | — | — | — |
+| **3.74** | YES | — | — |
 
 ## Credits
 
